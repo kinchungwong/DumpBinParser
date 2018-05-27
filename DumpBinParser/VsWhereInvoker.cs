@@ -8,7 +8,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Threading;
 
-namespace DumpBinParser.VsWhere
+namespace DumpBinParser
 {
     public class VsWhereInvoker
     {
@@ -31,12 +31,21 @@ namespace DumpBinParser.VsWhere
             set;
         } = Internals.ExePathDefault;
 
-        public List<string> OutputLines
+        public IList<string> OutputLines
         {
-            get;
-        } = new List<string>();
+            get
+            {
+                return Invoker.OutputText;
+            }
+        }
 
         public string VsInstallationPath
+        {
+            get;
+            private set;
+        }
+
+        public Utility.ProcessInvoker Invoker
         {
             get;
             private set;
@@ -58,21 +67,10 @@ namespace DumpBinParser.VsWhere
 
         private void RunProcess()
         {
-            ProcessStartInfo psi = new ProcessStartInfo(ExePath)
+            using (Invoker = new Utility.ProcessInvoker())
             {
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                WindowStyle = ProcessWindowStyle.Normal
-            };
-            using (var process = Process.Start(psi))
-            using (var srt = new Utility.StreamReaderThread(process.StandardOutput))
-            {
-                process.WaitForExit();
-                srt.WaitForExit();
-                while (srt.Lines.TryDequeue(out string s))
-                {
-                    OutputLines.Add(s);
-                }
+                Invoker.ExePath = ExePath;
+                Invoker.Run();
             }
         }
 

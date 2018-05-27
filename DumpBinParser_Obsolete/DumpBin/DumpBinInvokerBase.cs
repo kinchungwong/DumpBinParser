@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace DumpBinParser.DumpBin
 {
+    [Obsolete("To be replaced with a call to DumpBinInvoker")]
     public abstract class DumpBinInvokerBase
     {
         /// <summary>
@@ -22,6 +23,21 @@ namespace DumpBinParser.DumpBin
         } = String.Empty;
 
         /// <summary>
+        /// The external process on which "dumpbin.exe" was executed.
+        /// </summary>
+        public Utility.ProcessInvoker Invoker
+        {
+            get;
+            protected set;
+        }
+
+        protected static readonly Lazy<string> _lazyFoundExePath = new Lazy<string>(() => {
+            var vsWhere = new VsWhereInvoker();
+            vsWhere.Run();
+            return Path.Combine(vsWhere.VsInstallationPath, @"VC\Tools\MSVC\14.13.26128\bin\Hostx64\x64\dumpbin.exe");
+        });
+
+        /// <summary>
         /// This method needs to be called by the concrete derived class immediately before
         /// the "dumpbin.exe" utility is invoked.
         /// </summary>
@@ -29,11 +45,9 @@ namespace DumpBinParser.DumpBin
         {
             if (string.IsNullOrEmpty(ExePath))
             {
-                var vsWhere = new VsWhere.VsWhereInvoker();
-                vsWhere.Run();
-                ExePath = Path.Combine(vsWhere.VsInstallationPath, @"VC\Tools\MSVC\14.13.26128\bin\Hostx64\x64\dumpbin.exe");
+                ExePath = _lazyFoundExePath.Value;
             }
-            if (!ExePath.ToLowerInvariant().Contains("dumpbin"))
+            else if (!ExePath.ToLowerInvariant().Contains("dumpbin"))
             {
                 throw new Exception("Invalid path for dumpbin.exe");
             }
@@ -41,15 +55,6 @@ namespace DumpBinParser.DumpBin
             {
                 throw new FileNotFoundException("Cannot invoke dumpbin.exe", ExePath);
             }
-        }
-
-        protected static string EnsurePathQuoted(string s)
-        {
-            if (!s.StartsWith("\"") && !s.EndsWith("\""))
-            {
-                return ("\"" + s + "\"");
-            }
-            return s;
         }
     }
 }

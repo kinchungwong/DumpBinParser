@@ -25,10 +25,30 @@ namespace DumpBinParser.DumpBin
         /// <summary>
         /// All output text from "dumpbin.exe"
         /// </summary>
-        public List<string> OutputLines
+        public IList<string> OutputLines
+        {
+            get
+            {
+                return Invoker.OutputText;
+            }
+        }
+
+        /// <summary>
+        /// <para>
+        /// A list of callee function names that can be optionally provided to 
+        /// disassembly parser.
+        /// </para>
+        /// <para>
+        /// This helps parsing because the parsing of function names from disassembly
+        /// is not foolproof. A function name that is not seen elsewhere may be 
+        /// disregarded.
+        /// </para>
+        /// </summary>
+        public Dictionary<string, string> CalleeMapper
         {
             get;
-        } = new List<string>();
+            set;
+        } = new Dictionary<string, string>();
 
         /// <summary>
         /// List of function calls (those not inlined) observed in disassembly.
@@ -67,22 +87,12 @@ namespace DumpBinParser.DumpBin
 
         private void RunProcess()
         {
-            string args = "/DISASM " + EnsurePathQuoted(InputBinaryPath);
-            ProcessStartInfo psi = new ProcessStartInfo(ExePath, args)
+            using (Invoker = new Utility.ProcessInvoker())
             {
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                WindowStyle = ProcessWindowStyle.Normal
-            };
-            using (var process = Process.Start(psi))
-            using (var srt = new Utility.StreamReaderThread(process.StandardOutput))
-            {
-                process.WaitForExit();
-                srt.WaitForExit();
-                while (srt.Lines.TryDequeue(out string s))
-                {
-                    OutputLines.Add(s);
-                }
+                Invoker.ExePath = ExePath;
+                Invoker.Arguments.Add("/DISASM");
+                Invoker.Arguments.Add(InputBinaryPath);
+                Invoker.Run();
             }
         }
 
@@ -117,7 +127,6 @@ namespace DumpBinParser.DumpBin
         }
 
         SortedSet<int> _funcLineIndex = new SortedSet<int>();
-        HashSet<string> _funcNames = new HashSet<string>();
 
         /// <summary>
         /// Two-phase parsing is necessary because the list of function names
@@ -138,7 +147,10 @@ namespace DumpBinParser.DumpBin
                 {
                     string funcName = s.Substring(0, s.Length - 1);
                     _funcLineIndex.Add(currLineIndex);
-                    _funcNames.Add(funcName);
+                    if (!CalleeMapper.ContainsKey(funcName))
+                    {
+                        CalleeMapper.Add(funcName, funcName);
+                    }
                 }
             }
         }
@@ -188,12 +200,12 @@ namespace DumpBinParser.DumpBin
                             {
                                 continue;
                             }
-                            if (_funcNames.Contains(codePart))
+                            if (CalleeMapper.TryGetValue(codePart, out string callee))
                             {
                                 var record = new DumpBinCallRecord()
                                 {
                                     Caller = currFuncName,
-                                    Callee = codePart,
+                                    Callee = callee,
                                     RVA = rva
                                 };
                                 CallRecords.Add(record);

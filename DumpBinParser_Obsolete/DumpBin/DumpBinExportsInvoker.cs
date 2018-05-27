@@ -12,6 +12,7 @@ namespace DumpBinParser.DumpBin
     /// <summary>
     /// Invokes "dumpbin.exe" with "EXPORTS" option on the specified binary file.
     /// </summary>
+    [Obsolete("Use DumpBinProcessor.GetExports()")]
     public class DumpBinExportsInvoker : DumpBinInvokerBase
     {
         /// <summary>
@@ -25,10 +26,13 @@ namespace DumpBinParser.DumpBin
         /// <summary>
         /// All output text from "dumpbin.exe"
         /// </summary>
-        public List<string> OutputLines
+        public IList<string> OutputLines
         {
-            get;
-        } = new List<string>();
+            get
+            {
+                return Invoker.OutputText;
+            }
+        }
 
         public List<DumpBinExportsRecord> Records
         {
@@ -62,22 +66,12 @@ namespace DumpBinParser.DumpBin
 
         private void RunProcess()
         {
-            string args = "/EXPORTS " + EnsurePathQuoted(InputBinaryPath);
-            ProcessStartInfo psi = new ProcessStartInfo(ExePath, args)
+            using (Invoker = new Utility.ProcessInvoker())
             {
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                WindowStyle = ProcessWindowStyle.Normal
-            };
-            using (var process = Process.Start(psi))
-            using (var srt = new Utility.StreamReaderThread(process.StandardOutput))
-            {
-                process.WaitForExit();
-                srt.WaitForExit();
-                while (srt.Lines.TryDequeue(out string s))
-                {
-                    OutputLines.Add(s);
-                }
+                Invoker.ExePath = ExePath;
+                Invoker.Arguments.Add("/EXPORTS");
+                Invoker.Arguments.Add(InputBinaryPath);
+                Invoker.Run();
             }
         }
 

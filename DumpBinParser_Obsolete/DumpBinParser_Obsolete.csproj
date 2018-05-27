@@ -4,16 +4,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{FE8E3448-49FD-44C4-903E-0132A307D62C}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>DumpBinParserCmd</RootNamespace>
-    <AssemblyName>DumpBinParserCmd</AssemblyName>
+    <ProjectGuid>{66613FB6-955F-4833-B940-0BC032FC95AB}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>DumpBinParser</RootNamespace>
+    <AssemblyName>DumpBinParser_Obsolete</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -21,28 +20,18 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Dia2Lib">
-      <HintPath>..\References\Interop.Dia2Lib\Dia2Lib.dll</HintPath>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
-    </Reference>
-    <Reference Include="SymbolSort">
-      <HintPath>..\References\SymbolSort\SymbolSort.exe</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -53,21 +42,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="BinaryDependency.cs" />
+    <Compile Include="BinaryDependencyCrawler.cs" />
+    <Compile Include="BinarySearchPaths.cs" />
+    <Compile Include="DumpBinProcessor_Obsolete.cs" />
+    <Compile Include="DumpBin\DumpBinCallRecord.cs" />
+    <Compile Include="DumpBin\DumpBinDisasmInvoker.cs" />
+    <Compile Include="DumpBin\DumpBinExportsInvoker.cs" />
+    <Compile Include="DumpBin\DumpBinExportsRecord.cs" />
+    <Compile Include="DumpBin\DumpBinImportsInvoker.cs" />
+    <Compile Include="DumpBin\DumpBinImportsRecord.cs" />
+    <Compile Include="DumpBin\DumpBinInvokerBase.cs" />
+    <Compile Include="Crawler.cs" />
+    <Compile Include="MultiValueDictionaryExtensions\MultiValueDictionaryMethods.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
+    <Compile Include="Utility\UniqueQueue.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DumpBinParser\DumpBinParser.csproj">
       <Project>{785b5dbb-5da5-4eec-b561-93cd299999b0}</Project>
-      <Name>DumpBinParser</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\DumpBinParser_Obsolete\DumpBinParser_Obsolete.csproj">
-      <Project>{66613fb6-955f-4833-b940-0bc032fc95ab}</Project>
-      <Name>DumpBinParser_Obsolete</Name>
+      <Name>BinaryDependencyCrawler</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

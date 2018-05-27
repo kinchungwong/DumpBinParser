@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{66613FB6-955F-4833-B940-0BC032FC95AB}</ProjectGuid>
+    <ProjectGuid>{785B5DBB-5DA5-4EEC-B561-93CD299999B0}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DumpBinParser</RootNamespace>
@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -28,6 +29,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -40,15 +42,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DumpBin\DumpBinCallRecord.cs" />
-    <Compile Include="DumpBin\DumpBinDisasmInvoker.cs" />
-    <Compile Include="DumpBin\DumpBinExportsInvoker.cs" />
-    <Compile Include="DumpBin\DumpBinExportsRecord.cs" />
-    <Compile Include="DumpBin\DumpBinInvokerBase.cs" />
+    <Compile Include="DumpBinInvoker.cs" />
+    <Compile Include="DumpBinProcessor.cs" />
+    <Compile Include="ExportEntry.cs" />
+    <Compile Include="ExportTable.cs" />
+    <Compile Include="FileHint.cs" />
+    <Compile Include="FileHintTable.cs" />
+    <Compile Include="FileIdentity.cs" />
+    <Compile Include="FilePath.cs" />
+    <Compile Include="FilePathTable.cs" />
+    <Compile Include="ImportEntry.cs" />
+    <Compile Include="ImportTable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utility\BalancedBracketParser.cs" />
-    <Compile Include="Utility\StreamReaderThread.cs" />
-    <Compile Include="VsWhere\VsWhereInvoker.cs" />
+    <Compile Include="Utility\ComputedPropertyIndexer.cs" />
+    <Compile Include="Utility\ListAsDict.cs" />
+    <Compile Include="Utility\ProcessInvoker.cs" />
+    <Compile Include="VsWhereInvoker.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

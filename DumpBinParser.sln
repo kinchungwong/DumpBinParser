@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27428.2011
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumpBinParser", "DumpBinParser\DumpBinParser.csproj", "{66613FB6-955F-4833-B940-0BC032FC95AB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumpBinParser_Obsolete", "DumpBinParser_Obsolete\DumpBinParser_Obsolete.csproj", "{66613FB6-955F-4833-B940-0BC032FC95AB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumpBinParserCmd", "DumpBinParserCmd\DumpBinParserCmd.csproj", "{FE8E3448-49FD-44C4-903E-0132A307D62C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumpBinParser", "DumpBinParser\DumpBinParser.csproj", "{785B5DBB-5DA5-4EEC-B561-93CD299999B0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{FE8E3448-49FD-44C4-903E-0132A307D62C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE8E3448-49FD-44C4-903E-0132A307D62C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE8E3448-49FD-44C4-903E-0132A307D62C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{785B5DBB-5DA5-4EEC-B561-93CD299999B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{785B5DBB-5DA5-4EEC-B561-93CD299999B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{785B5DBB-5DA5-4EEC-B561-93CD299999B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{785B5DBB-5DA5-4EEC-B561-93CD299999B0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

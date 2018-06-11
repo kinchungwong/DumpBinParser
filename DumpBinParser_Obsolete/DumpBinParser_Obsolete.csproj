@@ -54,7 +54,6 @@
     <Compile Include="DumpBin\DumpBinImportsRecord.cs" />
     <Compile Include="DumpBin\DumpBinInvokerBase.cs" />
     <Compile Include="Crawler.cs" />
-    <Compile Include="MultiValueDictionaryExtensions\MultiValueDictionaryMethods.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utility\UniqueQueue.cs" />
   </ItemGroup>

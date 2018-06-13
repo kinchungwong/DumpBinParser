@@ -201,36 +201,47 @@ namespace DumpBinParser
 
         internal class DisasmParser
         {
+            private class FuncParseInfo
+            {
+                public int LineNumStart { get; set; }
+                public int LineNumStop { get; set; }
+                public string FuncName { get; set; } = string.Empty;
+                public ulong CodeAddressStart { get; set; }
+                public ulong CodeByteCount { get; set; }
+                public ulong CodeFillerBytes { get; set; }
+                public override string ToString()
+                {
+                    return $"(Lines:{LineNumStart}-{LineNumStop}, Name:[[{FuncName}]])";
+                }
+            }
             private FilePath _callerFile;
-            private IList<string> _lines;
-            private int _lineAfterHeader;
-            private HashSet<string> _funcNames = new HashSet<string>();
-            private HashSet<int> _funcLineNums = new HashSet<int>();
-            private Dictionary<string, List<int>> _funcLines = new Dictionary<string, List<int>>();
-            private Dictionary<string, int> _importedNames = new Dictionary<string, int>();
-            private Dictionary<string, int> _rawByteCounts = new Dictionary<string, int>();
-            private List<CallEntry> _calls = new List<CallEntry>();
+            private List<string> _lines;
+            private int _lineNumStart;
+            private int _lineNumStop;
+            private List<FuncParseInfo> _funcParseInfos;
+            private HashSet<string> _funcNames;
+            private HashSet<string> _importedNames;
+            private List<CallEntry> _calls;
 
             public List<CallEntry> Calls => _calls;
 
             public DisasmParser(FilePath callerFile, IList<string> lines, IList<string> importedNames)
             {
                 _callerFile = callerFile;
-                _lines = lines;
-                for (int index = 0; index < importedNames.Count; ++index)
-                {
-                    _importedNames.Add(importedNames[index], index);
-                }
+                _lines = new List<string>(lines);
+                _funcParseInfos = new List<FuncParseInfo>();
+                _funcNames = new HashSet<string>();
+                _importedNames = new HashSet<string>(importedNames);
+                _calls = new List<CallEntry>();
             }
 
             public void Run()
             {
-                SkipHeaders();
-                ParseFunctionNames();
+                FindDisasmLineNumRange();
                 ParseDisasm();
             }
 
-            private void SkipHeaders()
+            private void FindDisasmLineNumRange()
             {
                 int headerIndicator = 0;
                 for (int lineIndex = 0; lineIndex < _lines.Count; ++lineIndex)
@@ -250,110 +261,135 @@ namespace DumpBinParser
                     }
                     if (line.EndsWith(":"))
                     {
-                        _lineAfterHeader = lineIndex;
-                        break;
-                    }
-                }
-            }
-
-            private void ParseFunctionNames()
-            {
-                for (int lineIndex = _lineAfterHeader; lineIndex < _lines.Count; ++lineIndex)
-                {
-                    string line = _lines[lineIndex];
-                    if (line.EndsWith(":"))
-                    {
+                        if (headerIndicator == 2)
+                        {
+                            // is first function disasm.
+                            _lineNumStart = lineIndex;
+                            headerIndicator++;
+                        }
+                        if (_funcParseInfos.Count >= 1)
+                        {
+                            _funcParseInfos[_funcParseInfos.Count - 1].LineNumStop = lineIndex;
+                        }
+                        // remove colon at the end of function name
                         string funcName = line.Substring(0, line.Length - 1);
+                        _funcParseInfos.Add(new FuncParseInfo()
+                        {
+                            LineNumStart = lineIndex,
+                            LineNumStop = lineIndex,
+                            FuncName = funcName
+                        });
                         _funcNames.Add(funcName);
-                        _funcLineNums.Add(lineIndex);
-                        _funcLines.AppendValue(funcName, lineIndex);
+                        continue;
+                    }
+                    if (headerIndicator == 3 &&
+                        string.IsNullOrEmpty(line))
+                    {
+                        // all function disasms finished.
+                        _lineNumStop = lineIndex;
+                        if (_funcParseInfos.Count >= 1)
+                        {
+                            _funcParseInfos[_funcParseInfos.Count - 1].LineNumStop = lineIndex;
+                        }
+                        break;
                     }
                 }
             }
 
             private void ParseDisasm()
             {
-                char[] spaceChars = new char[] { ' ', '\t' };
-                char[] splitChars = new char[] { ' ', ',', '[', '+', ']', '-' };
-                string currentFuncName = string.Empty;
                 const ulong NotRVA = ulong.MaxValue;
                 bool HasRVA(ulong rva)
                 {
                     return (rva != NotRVA);
                 };
-                ulong currentFuncFirstRVA = NotRVA;
-                ulong currentFuncLastRVA = NotRVA;
-                for (int lineIndex = _lineAfterHeader; lineIndex < _lines.Count; ++lineIndex)
+                char[] spaceChars = new char[] { ' ', '\t' };
+                char[] splitChars = new char[] { ' ', ',', '[', '+', ']', '-' };
+                foreach (FuncParseInfo funcInfo in _funcParseInfos)
                 {
-                    string line = _lines[lineIndex];
-                    if (_funcLineNums.Contains(lineIndex))
+                    ulong firstRVA = NotRVA;
+                    ulong lastRVA = NotRVA;
+                    ulong fillerCount = 0u;
+                    for (int lineIndex = funcInfo.LineNumStart + 1; lineIndex < funcInfo.LineNumStop; ++lineIndex)
                     {
-                        currentFuncName = line.TrimEnd(':');
-                        currentFuncFirstRVA = NotRVA;
-                        currentFuncLastRVA = NotRVA;
-                        continue;
-                    }
-                    if (string.IsNullOrEmpty(currentFuncName))
-                    {
-                        continue;
-                    }
-                    if (string.IsNullOrEmpty(line))
-                    {
-                        currentFuncName = string.Empty;
-                        currentFuncFirstRVA = NotRVA;
-                        currentFuncLastRVA = NotRVA;
-                        continue;
-                    }
-                    string[] parts = line.Split(spaceChars, StringSplitOptions.RemoveEmptyEntries);
-                    for (int partIndex = 0; partIndex < parts.Length; ++partIndex)
-                    {
-                        string part = parts[partIndex];
-                        if (partIndex == 0 &&
-                            IsRVA(part))
+                        ulong disasmBytesOnCurrentLine = 0u;
+                        bool disasmByteEnded = false;
+                        bool currentLineIsFiller = false;
+                        string line = _lines[lineIndex];
+                        string[] parts = line.Split(spaceChars, StringSplitOptions.RemoveEmptyEntries);
+                        for (int partIndex = 0; partIndex < parts.Length; ++partIndex)
                         {
-                            ulong rva = ulong.Parse(part.TrimEnd(':'), System.Globalization.NumberStyles.AllowHexSpecifier);
-                            currentFuncLastRVA = rva;
-                            if (!HasRVA(currentFuncFirstRVA))
+                            string part = parts[partIndex];
+                            if (partIndex == 0 && IsRVA(part))
                             {
-                                currentFuncFirstRVA = rva;
-                            }
-                        }
-                        else if (IsDisasmByte(part))
-                        {
-                            // ======
-                            // Note: for "long" instructions (instructions that take more-than-usual
-                            // number of bytes to encode), such instruction bytes might spill into
-                            // next line. Therefore, the value of disasmByteCount might be increased
-                            // on line two.
-                            // ======
-                            // Note: if the RVA space contains multiple copies of the same function,
-                            // _rawByteCounts[] will contain the cumulative total.
-                            // ======
-                            // Note: currently, filler bytes ("CC") are also included.
-                            // Note that only those bytes that start on an instruction boundary are
-                            // truly filler bytes. If the byte value "CC" occurs in the middle of an
-                            // instruction, such byte value shall not be treated as filler bytes.
-                            // ======
-                            _rawByteCounts[currentFuncName]++;
-                        }
-                        else
-                        {
-                            string[] codeParts = part.Split(splitChars, StringSplitOptions.RemoveEmptyEntries);
-                            foreach (string codePart in codeParts)
-                            {
-                                if (IsDecimalChar(codePart[0]))
+                                ulong rva = ulong.Parse(part.TrimEnd(':'), System.Globalization.NumberStyles.AllowHexSpecifier);
+                                lastRVA = rva;
+                                if (!HasRVA(firstRVA))
                                 {
-                                    continue;
-                                }
-                                string calleeName = codePart;
-                                if (_importedNames.ContainsKey(calleeName) ||
-                                    _funcNames.Contains(calleeName))
-                                {
-                                    _calls.Add(new CallEntry(_callerFile, currentFuncName, calleeName));
+                                    firstRVA = rva;
                                 }
                             }
+                            else if (!disasmByteEnded && IsDisasmByte(part))
+                            {
+                                // ======
+                                // Note: for "long" instructions (instructions that take more-than-usual
+                                // number of bytes to encode), such instruction bytes might spill into
+                                // next line. Therefore, the value of disasmByteCount might be increased
+                                // on line two.
+                                // ======
+                                // Note: currently, filler bytes ("CC") are also included.
+                                // Note that only those bytes that start on an instruction boundary are
+                                // truly filler bytes. If the byte value "CC" occurs in the middle or
+                                // toward the end of an instruction, such bytes shall not be treated as 
+                                // filler bytes.
+                                // ======
+                                disasmBytesOnCurrentLine++;
+                                lastRVA++;
+                                if (part.Equals("CC"))
+                                {
+                                    if (disasmBytesOnCurrentLine == 1)
+                                    {
+                                        currentLineIsFiller = true;
+                                    }
+                                    if (currentLineIsFiller)
+                                    {
+                                        fillerCount++;
+                                    }
+                                    else
+                                    {
+                                        currentLineIsFiller = false;
+                                        fillerCount = 0u;
+                                    }
+                                }
+                                else
+                                {
+                                    currentLineIsFiller = false;
+                                    fillerCount = 0u;
+                                }
+                            }
+                            else
+                            {
+                                disasmByteEnded = true;
+                                string[] codeParts = part.Split(splitChars, StringSplitOptions.RemoveEmptyEntries);
+                                foreach (string codePart in codeParts)
+                                {
+                                    if (IsDecimalChar(codePart[0]))
+                                    {
+                                        continue;
+                                    }
+                                    string calleeName = codePart;
+                                    if (_importedNames.Contains(calleeName) ||
+                                        _funcNames.Contains(calleeName))
+                                    {
+                                        _calls.Add(new CallEntry(_callerFile, funcInfo.FuncName, calleeName));
+                                    }
+                                }
+                            }
                         }
                     }
+                    funcInfo.CodeAddressStart = firstRVA;
+                    funcInfo.CodeByteCount = lastRVA - fillerCount - firstRVA;
+                    funcInfo.CodeFillerBytes = fillerCount;
                 }
             }
         }
